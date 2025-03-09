@@ -1,0 +1,21 @@
+numpy
+matplotlib
+torch
+torchvision
+torchaudio
+opencv-python-headless
+tqdm
+ipython
+ipykernel
+# For Stable Diffusion
+peft
+huggingface-hub
+transformers
+diffusers
+accelerate
+protobuf
+sentencepiece
+# SANA caption clean
+beautifulsoup4
+ftfy
+--extra-index-url https://download.pytorch.org/whl/cu124
