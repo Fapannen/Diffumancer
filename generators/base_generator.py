@@ -26,7 +26,8 @@ class BaseGenerator:
         self,
         model_path: str,
         loras: list[LoraConfig] = [],
-        torch_dtype=torch.bfloat16,
+        torch_dtype = torch.bfloat16,
+        cpu_offload : bool = True,
         **kwargs,
     ):
         self.model_path = model_path
@@ -34,9 +35,12 @@ class BaseGenerator:
         self.loras = None
         self.output = None
         self.dtype = torch_dtype
+        
+        self.use_cpu_offload = cpu_offload
 
         self.init_model_pipeline(self.model_path, **kwargs)
         self.init_loras(loras)
+        self.finalize_pipeline()
 
     def init_model_pipeline(self, model_path: str, **kwargs) -> None:
         """
@@ -59,8 +63,6 @@ class BaseGenerator:
             model_path, torch_dtype=self.dtype, **kwargs
         )
 
-        self.pipeline.enable_model_cpu_offload()
-
     def init_loras(self, loras: List[LoraConfig]) -> None:
         """Initialize the defined loras, if applicable
 
@@ -82,6 +84,23 @@ class BaseGenerator:
             lora_weights = [lora.weight for lora in self.loras]
 
             self.pipeline.set_adapters(lora_names, lora_weights)
+
+    def finalize_pipeline(self) -> None:
+        """
+        Some models need to be offloaded to the CPU due to high
+        GPU VRAM requirements. This function shall handle such
+        modifications and potential other optimizations (eg.
+        compilation, vae tiling / slicing, etc.)
+        
+        On the other hand, if the user has enough GPU VRAM, it
+        makes the inference much faster if the whole model is
+        on the GPU and not loaded part by part on-demand.
+        """
+        if self.use_cpu_offload:
+            self.pipeline.enable_model_cpu_offload()
+        else:
+            self.pipeline.to("cuda")
+            
 
     def infer_variant(self, dtype: type = None) -> str:
         """
