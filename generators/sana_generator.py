@@ -11,13 +11,14 @@ class SanaGenerator(BaseGenerator):
         model_path: str,
         loras: list[LoraConfig] = [],
         torch_dtype=torch.bfloat16,
+        cpu_offload : bool = True,
         use_pag: bool = False,
         pag_scale: float = 3.0,
     ):
         self.use_pag = use_pag
         self.pag_scale = pag_scale
 
-        super().__init__(model_path, loras, torch_dtype)
+        super().__init__(model_path, loras, torch_dtype, cpu_offload)
 
     def init_model_pipeline(self, model_path):
         if self.use_pag:
@@ -26,8 +27,6 @@ class SanaGenerator(BaseGenerator):
                 pag_applied_layers=["transformer_blocks.8"],
                 torch_dtype=self.dtype,
             )
-
-            self.pipeline.enable_model_cpu_offload()
 
         else:
             super().init_model_pipeline(model_path)

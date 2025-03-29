@@ -10,5 +10,6 @@ class FluxGenerator(BaseGenerator):
         model_path: str,
         loras: list[LoraConfig] = [],
         torch_dtype=torch.bfloat16,
+        cpu_offload : bool = True
     ):
-        super().__init__(model_path, loras, torch_dtype, use_safetensors=True)
+        super().__init__(model_path, loras, torch_dtype, cpu_offload, use_safetensors=True)

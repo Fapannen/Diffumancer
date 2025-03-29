@@ -14,6 +14,7 @@ class SDXLGenerator(BaseGenerator):
         model_path: str,
         loras: List[LoraConfig] = [],
         torch_dtype: torch.dtype = torch.bfloat16,
+        cpu_offload : bool = True,
         use_refiner: bool = False,
         refiner_frac: float = 0.8,
         use_pag: bool = False,
@@ -73,6 +74,7 @@ class SDXLGenerator(BaseGenerator):
             model_path,
             loras,
             torch_dtype,
+            cpu_offload,
             use_safetensors=True,
             variant=self.infer_variant(torch_dtype),
         )
@@ -94,7 +96,6 @@ class SDXLGenerator(BaseGenerator):
             self.pipeline = AutoPipelineForText2Image.from_pipe(
                 self.pipeline, enable_pag=True
             )
-            self.pipeline.enable_model_cpu_offload()
 
         if self.use_refiner:
             self.init_refiner()
@@ -114,8 +115,21 @@ class SDXLGenerator(BaseGenerator):
             use_safetensors=True,
             variant=self.infer_variant(self.dtype),
         )
+    
+    def finalize_pipeline(self) -> None:
+        """
+        SDXL requires specific handling due to the possibility of added
+        refiner model.
+        """
+        if self.use_cpu_offload:
+            self.pipeline.enable_model_cpu_offload()
+            if self.use_refiner:
+                self.refiner.enable_model_cpu_offload()
 
-        self.refiner.enable_model_cpu_offload()
+        else:
+            self.pipeline.to("cuda")
+            if self.use_refiner:
+                self.refiner.to("cuda")
 
     def run_inference(self, *args, **kwargs) -> PipelineOutput:
         """See docstring of the parent class for details."""
